@@ -8,7 +8,11 @@
 void Server(){
     char ip[]="127.0.0.1";
     SrvSock s(ip,50500);
-    s.runThreadServer();
+    #ifdef NOT_THREADEDSERVER
+        s.runServer();
+    #else
+        s.runThreadServer();
+    #endif
 }
 
 void Client(char m[]){
