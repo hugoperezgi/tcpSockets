@@ -37,14 +37,14 @@ class SrvSock{
 
 SrvSock::SrvSock(char* ipAddress, int port){
     srvUp=true;
-    if(WSAStartup(MAKEWORD(2, 2), &wsaData)!=NO_ERROR){WSACleanup();std::cout <<"WSA_Error";}
+    if(WSAStartup(MAKEWORD(2, 2), &wsaData)!=NO_ERROR){WSACleanup();std::cout <<"WSA_Error";return;}
     sckListen = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
-    if(sckListen==INVALID_SOCKET){WSACleanup();std::cout <<"Socket_Error";}
+    if(sckListen==INVALID_SOCKET){WSACleanup();std::cout <<"Socket_Error";return;}
     srvAddr.sin_family = AF_INET;
     srvAddr.sin_addr.s_addr = inet_addr(ipAddress);
     srvAddr.sin_port = htons(port);
-    if(bind(sckListen,(SOCKADDR *) &srvAddr,sizeof srvAddr) == SOCKET_ERROR){closesocket(sckListen);sckListen = INVALID_SOCKET;WSACleanup();std::cout <<"Bind_Error";}
-    if(listen(sckListen,5)==SOCKET_ERROR){closesocket(sckListen);sckListen = INVALID_SOCKET;WSACleanup();std::cout <<"ListenError";}
+    if(bind(sckListen,(SOCKADDR *) &srvAddr,sizeof srvAddr) == SOCKET_ERROR){closesocket(sckListen);sckListen = INVALID_SOCKET;WSACleanup();std::cout <<"Bind_Error";return;}
+    if(listen(sckListen,5)==SOCKET_ERROR){closesocket(sckListen);sckListen = INVALID_SOCKET;WSACleanup();std::cout <<"ListenError";return;}
         // Use backlog == SOMAXCONN for >>> client connections, else keep low (dont waste resources)
     FD_ZERO(&allSCK);
     FD_SET(sckListen,&allSCK);
@@ -54,6 +54,7 @@ SrvSock::~SrvSock(){
 
     closeSockets();
     Sleep(250);
+    delete[] s;
     WSACleanup();
 
     std::cout<<"Server Out!";
@@ -61,27 +62,23 @@ SrvSock::~SrvSock(){
 
 void SrvSock::getNewClient(){
     SOCKET s = accept(sckListen,NULL,NULL);
-    if(s==INVALID_SOCKET){std::cout << "AcceptError";}
+    if(s==INVALID_SOCKET){std::cout << "AcceptError";return;}
     FD_SET(s,&allSCK);
 }
 
 /*this->rmvSock(sck); //Remove the socket if client dc'd*/
 void SrvSock::rmvSock(SOCKET s){
     FD_CLR(s,&allSCK);
+    closesocket(s);
 }
 
 void SrvSock::runServer(){
     srvUp=true;
-    int j=0;
     while (srvUp){
         //Fill the sock list that select will modify
         FD_ZERO(&rSCK);
-        j=0;
-        for (auto &&i : allSCK.fd_array){
-            FD_SET(i,&rSCK);
-            j++;
-            if(j==allSCK.fd_count)break;
-        }
+        memcpy(&rSCK,&allSCK,sizeof allSCK);
+        
         //Give the sck list to select
         switch (select(0,&rSCK,NULL,NULL,NULL)){
             case -1:
@@ -92,7 +89,7 @@ void SrvSock::runServer(){
                 break;
             default:
                 /* At least 1 sck is ready to accept/read */
-                j=0;
+
                 for (auto &&sck : rSCK.fd_array){
                     //Iterate through all the sockets ready to accept/read
 
@@ -188,7 +185,6 @@ void SrvSock::closeSockets(){
             timeout.tv_sec=5;
             timeout.tv_usec=0;
         SOCKET ss;
-        std::thread t;
         while(srvUp){
             FD_ZERO(&rSCK);
             FD_SET(sckListen,&rSCK);
@@ -196,6 +192,7 @@ void SrvSock::closeSockets(){
             if(select(0,&rSCK,NULL,NULL,&timeout)==0){continue;}
 
             ss = accept(sckListen,NULL,NULL);
+            if(ss==INVALID_SOCKET){std::cout << "AcceptError";continue;}
             new std::thread(threadHandler,ss,this);
         }
     }

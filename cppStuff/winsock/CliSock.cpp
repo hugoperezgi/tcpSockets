@@ -31,18 +31,19 @@ class CliSock{
 int CliSock::i=0;
 
 CliSock::CliSock(char* ipAddress, int port){
-    if(WSAStartup(MAKEWORD(2, 2), &wsaData)!=NO_ERROR){WSACleanup();std::cout <<"WSA_Error";}
+    if(WSAStartup(MAKEWORD(2, 2), &wsaData)!=NO_ERROR){WSACleanup();std::cout <<"WSA_Error";return;}
     sck = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
-    if(sck==INVALID_SOCKET){WSACleanup();std::cout <<"Socket_Error";}
+    if(sck==INVALID_SOCKET){WSACleanup();std::cout <<"Socket_Error";return;}
     srvAddr.sin_family = AF_INET;
     srvAddr.sin_addr.s_addr = inet_addr(ipAddress);
     srvAddr.sin_port = htons(port);
-    if(connect(sck,(SOCKADDR *) &srvAddr,sizeof srvAddr) == SOCKET_ERROR){closesocket(sck);sck = INVALID_SOCKET;WSACleanup();std::cout <<"Connection_Error";}
+    if(connect(sck,(SOCKADDR *) &srvAddr,sizeof srvAddr) == SOCKET_ERROR){closesocket(sck);sck = INVALID_SOCKET;WSACleanup();std::cout <<"Connection_Error";return;}
 }   
 
 CliSock::~CliSock(){
     shutdown(sck,SD_BOTH);
     closesocket(sck);
+    delete[] s;
     WSACleanup();
 }
 
