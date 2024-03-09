@@ -26,8 +26,6 @@ void Client(char m[]){
 
 
 int main(int argc, char const *argv[]){
-
-    std::cout<<"Fuck you <3\n";
     
     std::cout << "ServerUp!\n";
     std::thread s(Server);

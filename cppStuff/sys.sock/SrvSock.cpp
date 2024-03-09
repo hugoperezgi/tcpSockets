@@ -6,13 +6,13 @@
 #include <cstring> //for memcpy
 #include <iostream>
 
-// #define NOT_THREADEDSERVER //Comment this line for threaded version instead of selector
+#define NOT_THREADEDSERVER //Comment this line for threaded version instead of selector
 
 #define RCV_BF_LEN 1492
 
 class SrvSock{
     private:
-        int sckListen, nfds;
+        int sckListen;
         sockaddr_in srvAddr;
         char rcvB[RCV_BF_LEN];
         char* s;
@@ -36,6 +36,7 @@ SrvSock::SrvSock(char* ipAddress, int port){
     srvUp=true;
     sckListen = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if(sckListen==-1) std::cout << "SocketError\n";
+        const int enable = 1;setsockopt(sckListen, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
     srvAddr.sin_family = AF_INET;
     srvAddr.sin_addr.s_addr = inet_addr(ipAddress);
     srvAddr.sin_port = htons(port);
@@ -47,28 +48,25 @@ SrvSock::SrvSock(char* ipAddress, int port){
 
 SrvSock::~SrvSock(){
     closeSockets();
-    std::cout<<"Server Out!";
+    std::cout<<"Server Out!\n";
 }
 
 void SrvSock::getNewClient(){
     int s = accept(sckListen, NULL, NULL);
     if(s == -1){std::cout << "AcceptError\n";return;}
     FD_SET(s, &allSCK);
-    nfds++;
 }
 
 void SrvSock::rmvSock(int s){
     FD_CLR(s, &allSCK);
-    nfds--;
 }
 
 void SrvSock::runServer(){
     srvUp = true;
-    nfds=1;
     while(srvUp){
         FD_ZERO(&rSCK);
-        memcpy(&rSCK,&allSCK,sizeof allSCK);        
-        switch(select(nfds+1, &rSCK, NULL, NULL, NULL)){
+        memcpy(&rSCK,&allSCK,sizeof(&allSCK));
+        switch(select(FD_SETSIZE, &rSCK, NULL, NULL, NULL)){
             case -1:
                 std::cout << "Select Error\n";
                 break;
@@ -76,7 +74,7 @@ void SrvSock::runServer(){
                 std::cout << "Timeout\n";
                 break;
             default:
-                for(int s = 0; s < (nfds+1); ++s){
+                for(int s = 0; s < (FD_SETSIZE); ++s){
                     if(FD_ISSET(s, &rSCK)){
                         if(s == sckListen){
                             getNewClient();
@@ -102,7 +100,7 @@ void SrvSock::cliHandler(int s){
         if(i==-1){std::cout << "Receive Error\n";rmvSock(s);close(s);return;}
     }while(i==RCV_BF_LEN);
 
-    if(str == "!gokys"){
+    if(str=="!gokys"){
         srvUp = false;
     }else{
         std::cout << str << "\n";
@@ -110,7 +108,7 @@ void SrvSock::cliHandler(int s){
 }
 
 void SrvSock::closeSockets(){
-    for (int s = 0; s < (nfds+1); ++s) {
+    for (int s = 0; s < (FD_SETSIZE); ++s) {
         if(FD_ISSET(s, &allSCK)){
             shutdown(s, SHUT_RD);
             send(s, "ServerShutdown", strlen("ServerShutdown"), 0);
