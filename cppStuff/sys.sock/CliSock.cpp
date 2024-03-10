@@ -42,7 +42,6 @@ CliSock::~CliSock(){
         shutdown(sck, SHUT_RDWR);
         close(sck);
     }
-    delete[] s;
 }
 
 void CliSock::snd(char* Message){
@@ -63,5 +62,6 @@ char* CliSock::rcv() {
 }
 
 void CliSock::clearString(){
-    memset(s, 0, RCV_BF_LEN);
+    memset(s, 0, sizeof s);
+    s=nullptr;
 }

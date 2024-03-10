@@ -54,7 +54,6 @@ SrvSock::~SrvSock(){
 
     closeSockets();
     Sleep(250);
-    delete[] s;
     WSACleanup();
 
     std::cout<<"Server Out!";

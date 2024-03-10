@@ -43,7 +43,6 @@ CliSock::CliSock(char* ipAddress, int port){
 CliSock::~CliSock(){
     shutdown(sck,SD_BOTH);
     closesocket(sck);
-    delete[] s;
     WSACleanup();
 }
 
